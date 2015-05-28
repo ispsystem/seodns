@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mgrdata>
+	<library name="seodns"/>
+
+	<metadata name="dnsparam">
+		<form>
+			<field name="seodnsip">
+				<input type="text" name="seodnsip" check="ip"/>
+			</field>
+		</form>
+	</metadata>
+	<lang name="en">
+		<messages name="dnsparam">
+			<msg name="seodnsip">SEO IP-address</msg>
+			<msg name="hint_seodnsip">IP-address for parking domain zones</msg>
+		</messages>
+	</lang>
+</mgrdata>
