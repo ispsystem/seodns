@@ -5,6 +5,7 @@
 #include <api/action.h> 
 #include <mgr/mgrdb_struct.h> 
 #include <api/stddb.h>
+#include <api/autotask.h>
 #include <dnsmgr/db.h>
 
 MODULE("seodns");
@@ -14,6 +15,23 @@ DEFINE_FAIL("seodns");
 using namespace isp_api;
 
 mgr_db::JobCache *db;
+
+class EventUserDelete : public Event {
+public:
+	EventUserDelete(): Event("user.delete.one", "seodns") { }
+
+	void BeforeExecute(Session& ses) const {
+		auto user_table = db->Get<UserTable>();
+		if (user_table->FindByName(ses.Param("elid")) && !user_table->Parent.IsNull()) {
+			auto reseller_table = db->Get<UserTable>();
+			if (reseller_table->Find(user_table->Parent) && (int)reseller_table->NameSpace == user_table->NameSpace) {
+				ForEachQuery(db, "SELECT name FROM domain WHERE user="+user_table->Id, domain_list) {
+					InternalCall("domain.delete", "elid="+domain_list->AsString(0));
+				}
+			}
+		}
+	}
+};
 
 class EventDomainCreate : public Event {
 public:
@@ -37,12 +55,14 @@ public:
 		auto domain_table = db->Get<DomainTable>();
 		auto user_table = db->Get<UserTable>();
 
+		ses.DelParam("new_domain_owner");
 		if (domain_table->FindByName(ses.Param("elid"))
 		  && user_table->Find(domain_table->User)
-		  && !user_table->Parent.IsNull()) 
-			ses.SetParam("new_domain_owner", user_table->Parent);
-		else 
-			ses.DelParam("new_domain_owner");
+		  && !user_table->Parent.IsNull()) {
+			auto reseller_table = db->Get<UserTable>();
+			if (reseller_table->Find(user_table->Parent) && (int)reseller_table->NameSpace == user_table->NameSpace)
+				ses.SetParam("new_domain_owner", user_table->Parent);
+		}
 	}
 
 	void AfterExecute(Session& ses) const {
@@ -87,8 +107,13 @@ MODULE_INIT(seodns, "") {
 
 	new EventDnsParam();
 
+	new EventUserDelete();
+
 	new EventDomainCreate();
 	new EventDomainDelete();
+
+	string cmd = mgr_file::ConcatPath(mgr_file::GetCurrentDir(), "sbin/seodns_checker");
+	isp_api::task::Schedule(cmd, "0 2 * * *", "check redelegated domains");
 }
 
 } // end of private namespace
