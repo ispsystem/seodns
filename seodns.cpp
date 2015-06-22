@@ -56,6 +56,24 @@ public:
     }
 };
 
+class EventDomainRefresh : public Event {
+public:
+    EventDomainRefresh()
+        : Event("domain.refresh.one", "seodns")
+    {
+    }
+
+    void BeforeExecute(Session& ses) const
+    {
+        if (ses.auth.level() > lvUser)
+            return;
+
+        auto domain_table = db->Get<DomainTable>();
+        if (domain_table->DbFind("name=" + db->EscapeValue(ses.Param("elid")) + " AND seodnsparked='on'"))
+            throw mgr_err::Missed("domain", ses.Param("elid"));
+    }
+};
+
 class EventDomainDelete : public Event {
 public:
     EventDomainDelete()
@@ -129,6 +147,7 @@ MODULE_INIT(seodns, "")
     new EventDnsParam();
 
     new EventUserDelete();
+    new EventDomainRefresh();
 
     new EventDomainCreate();
     new EventDomainDelete();
