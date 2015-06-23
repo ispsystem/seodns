@@ -87,7 +87,9 @@ public:
         auto user_table = db->Get<UserTable>();
 
         ses.DelParam("new_domain_owner");
-        if (domain_table->FindByName(ses.Param("elid"))
+        string domain = ses.Param("elid");
+        if (domain.find(".ispsystem") == string::npos
+            && domain_table->FindByName(domain)
             && user_table->Find(domain_table->User)
             && !user_table->Parent.IsNull()) {
             auto reseller_table = db->Get<UserTable>();
