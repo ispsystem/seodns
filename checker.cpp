@@ -30,9 +30,17 @@ int ISP_MAIN(int argc, _TCHAR* argv[])
                 string line = str::GetWord(out, "\n");
                 if (line.find("name server:") != string::npos
                     || line.find("nserver:") != string::npos) {
-                    WhoisNameServers.insert(str::RGetWord(line));
+                    string domain = str::Trim(str::RGetWord(line, ":"));
+                    if (!domain.empty()) {
+                        if (domain[domain.size() - 1] != '.')
+                            domain += ".";
+
+                        WhoisNameServers.insert(domain);
+                    }
                 }
             }
+            if (WhoisNameServers.empty())
+                continue;
 
             str::Split(domain_list->AsString(2), " ", LocalNameServers);
 
