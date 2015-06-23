@@ -16,11 +16,11 @@ int ISP_MAIN(int argc, _TCHAR* argv[])
     ForEachQuery(db, "SELECT d.name, u.name, u.dnsns FROM domain d LEFT JOIN user u on d.user=u.id WHERE d.seodnsparked='on'", domain_list)
     {
         LogExt("check domain %s", domain_list->AsString(0).c_str());
-        auto whois = mgr_proc::Execute("whois " + domain_list->AsString(0), mgr_proc::Execute::efOut);
+        auto whois = mgr_proc::Execute("whois " + domain_list->AsString(0), mgr_proc::Execute::efOutErr);
         string out = str::Lower(whois.Str());
         Debug("result=%d out %s\n", whois.Result(), out.c_str());
 
-        if (whois.Result() && out.find("no whois server") != string::npos) {
+        if ((whois.Result() && out.find("no whois server") != string::npos) || out.find("no match for domain") != string::npos) {
             // unknown tld
             con.Query("func=domain.delete&elid=" + domain_list->AsString(0) + "&su=" + domain_list->AsString(1));
         } else if (whois.Result() == 0) {
