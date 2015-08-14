@@ -1,0 +1,19 @@
+
+Package: seodns-checker
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends},
+	coremanager,
+	dnsmanager
+Pre-Depends: coremanager
+Description: seodns-checker
+ seodns-checker binary and libraries
+
+
+Package: seodns-checker-dbg
+Section: debug
+Architecture: any
+Depends: seodns-checker (= ${binary:Version}), ${misc:Depends}
+Description: seodns-checker debug simbols
+ seodns-checker debug files
+

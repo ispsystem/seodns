@@ -1,0 +1,10 @@
+Source: seodns-checker
+Priority: extra
+Maintainer: ISPsystem <sales@ispsystem.com>
+Build-Depends: debhelper (>= 8.0.0),
+	coremanager-dev,
+	dnsmanager-dev
+Standards-Version: 3.9.3
+Section: libs
+Homepage: http://ispsystem.com/
+

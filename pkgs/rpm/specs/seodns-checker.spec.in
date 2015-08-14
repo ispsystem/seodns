@@ -1,0 +1,68 @@
+%define core_dir /usr/local/mgr5
+
+
+Name:                           seodns-checker
+Version:                        %%VERSION%%
+Release:                        %%REL%%%{?dist}
+
+Summary:                        seodns-checker package
+Group:                          System Environment/Daemons
+License:                        Commercial
+URL:                            http://ispsystem.com/
+
+
+BuildRequires:	coremanager-devel
+BuildRequires:	dnsmanager-devel
+
+Requires: 	coremanager
+Requires: 	dnsmanager
+
+%description
+seodns-checker
+
+%debug_package
+
+
+%build
+export LD_LIBRARY_PATH=".:./lib"
+export CFLAGS="$RPM_OPT_FLAGS"
+export CXXFLAGS="${CFLAGS}"
+make %{?_smp_mflags} NOEXTERNAL=yes RELEASE=yes 
+
+
+%install
+export LD_LIBRARY_PATH=".:./lib"
+export CFLAGS="$RPM_OPT_FLAGS"
+export LDFLAGS="-L%{core_dir}/lib"
+export CXXFLAGS="${CFLAGS}"
+rm -rf $RPM_BUILD_ROOT
+INSTALLDIR=%{buildroot}%{core_dir}
+mkdir -p $INSTALLDIR
+make %{?_smp_mflags} dist DISTDIR=$INSTALLDIR NOEXTERNAL=yes RELEASE=yes
+
+
+%check
+
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+%post
+. %{core_dir}/lib/pkgsh/core_pkg_funcs.sh
+ReloadMgr dnsmgr
+
+
+%postun
+if [ $1 -eq 0 ]; then
+. %{core_dir}/lib/pkgsh/core_pkg_funcs.sh
+ReloadMgr dnsmgr
+fi
+
+%files
+%defattr(-, root, root, -)
+%{core_dir}/etc/sql/dnsmgr.domain.addon/seodnsparked
+%{core_dir}/etc/sql/dnsmgr.user.addon/seodnsip
+%{core_dir}/etc/xml/dnsmgr_mod_seodns.xml
+%{core_dir}/lib/seodns.so
+%{core_dir}/libexec/seodns_checker.so
+%{core_dir}/sbin/seodns_checker
