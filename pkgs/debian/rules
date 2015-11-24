@@ -1,0 +1,62 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+# Sample debian/rules that uses debhelper.
+# This file was originally written by Joey Hess and Craig Small.
+# As a special exception, when this file is copied by dh-make into a
+# dh-make output file, you may use that output file without restriction.
+# This special exception was added by Craig Small in version 0.37 of dh-make.
+
+COREDIR = /usr/local/mgr5
+
+CFLAGS = `dpkg-buildflags --get CFLAGS`
+CFLAGS += `dpkg-buildflags --get CPPFLAGS`
+LDFLAGS = `dpkg-buildflags --get LDFLAGS`
+CFLAGS += -I$(COREDIR)/include
+CXXFLAGS = $(CFLAGS)
+
+export CFLAGS LDFLAGS CXXFLAGS
+
+INSTALLDIR = $(CURDIR)/debian/tmp$(COREDIR)
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+export NOEXTERNAL=yes
+
+JOPTS=-j$(shell grep -c processor /proc/cpuinfo)
+
+build:
+	dh_testdir
+	make $(JOPTS) NOEXTERNAL=yes BASE=$(COREDIR) RELEASE=yes ; \
+
+override_dh_auto_build: build
+
+clean:
+	dh_testdir
+	dh_testroot
+	make clean
+	dh_clean
+	rm -rf $(CURDIR)/debian/tmp
+	rm -rf $(CURDIR)/debian/dnsmanager
+
+install:
+	dh_testdir
+	dh_testroot
+	mkdir -p $(INSTALLDIR)
+	make $(JOPTS) dist NOEXTERNAL=yes BASE=$(COREDIR) RELEASE=yes DISTDIR=$(INSTALLDIR); \
+
+
+override_dh_auto_test:
+
+override_dh_auto_install: install
+
+override_dh_usrlocal:
+
+override_dh_shlibdeps:
+	LD_LIBRARY_PATH=$(COREDIR)/lib:$(COREDIR)/libexec:$(COREDIR)/external:$(LD_LIBRARY_PATH) dh_shlibdeps
+
+override_dh_strip:
+	dh_testdir
+	dh_strip --package=seodns-checker --dbg-package=seodns-checker-dbg
+
+%:
+	dh $@ 
