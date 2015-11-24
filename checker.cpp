@@ -3,7 +3,6 @@
 #include <mgr/mgrdb_sbin.h>
 #include <mgr/mgrproc.h>
 #include <mgr/mgrlog.h>
-#include <unistd.h>
 
 MODULE("seodns_checker");
 
@@ -16,44 +15,37 @@ int ISP_MAIN(int argc, _TCHAR* argv[])
     ForEachQuery(db, "SELECT d.name, u.name, u.dnsns FROM domain d LEFT JOIN user u on d.user=u.id WHERE d.seodnsparked='on'", domain_list)
     {
         LogExt("check domain %s", domain_list->AsString(0).c_str());
-        auto whois = mgr_proc::Execute("whois " + domain_list->AsString(0), mgr_proc::Execute::efOutErr);
-        string out = str::Lower(whois.Str());
-        Debug("result=%d out %s\n", whois.Result(), out.c_str());
+	mgr_file::Tmp tmp("tmp/out");
+        mgr_proc::Execute whois("whois " + domain_list->AsString(0) + " > " + tmp.Str());
+	whois.Run();
+	// sometime whois hungs for long time, so we kill it after 10 seconds 
+	for (int i = 100; i && whois.IsAlive(); --i)
+		mgr_proc::Sleep(100);
+	if (whois.IsAlive()) {
+		whois.Terminate();
+		continue;
+	}
+        //auto whois = mgr_proc::Execute("whois " + domain_list->AsString(0), mgr_proc::Execute::efOutErr);
+        //string out = str::Lower(whois.Str());
+        string out = str::Lower(mgr_file::Read(tmp));
+        Debug("result=%d out '%s'\n", whois.Result(), out.c_str());
 
-        if ((whois.Result() && out.find("no whois server") != string::npos) || out.find("no match for domain") != string::npos) {
-            // unknown tld
-            con.Query("func=domain.delete&elid=" + domain_list->AsString(0) + "&su=" + domain_list->AsString(1));
-        } else if (whois.Result() == 0) {
+        if (whois.Result() == 0) {
             // looking for nameservers
-            StringSet WhoisNameServers, LocalNameServers;
-            while (!out.empty()) {
-                string line = str::GetWord(out, "\n");
-                if (line.find("name server:") != string::npos
-                    || line.find("nserver:") != string::npos) {
-                    string domain = str::Trim(str::RGetWord(line, ":"));
-                    if (!domain.empty()) {
-                        if (domain[domain.size() - 1] != '.')
-                            domain += ".";
-
-                        WhoisNameServers.insert(domain);
-                    }
-                }
-            }
-            if (WhoisNameServers.empty())
-                continue;
-
+	    StringSet LocalNameServers;
             str::Split(domain_list->AsString(2), " ", LocalNameServers);
-
-            // compare name servers
             bool found = false;
-            ForEachI(WhoisNameServers, n)
-            {
-                LogExt("Check whois nameserver %s", n->c_str());
-                if (LocalNameServers.find(*n) != LocalNameServers.end()) {
-                    found = true;
-                    break;
-                }
-            }
+	    ForEachI(LocalNameServers, srv) {
+		string n = *srv;
+		if (n[n.size()-1] == '.') {
+			n.erase(n.size()-1);
+			if (out.find(n) != string::npos) {
+				found = true;
+				break;
+			}
+		}
+	    }
+
             if (!found)
                 con.Query("func=domain.delete&elid=" + domain_list->AsString(0) + "&su=" + domain_list->AsString(1));
         }
