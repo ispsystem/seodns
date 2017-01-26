@@ -65,4 +65,6 @@ fi
 %{core_dir}/etc/xml/dnsmgr_mod_seodns.xml
 %{core_dir}/lib/seodns.so
 %{core_dir}/libexec/seodns_checker.so
+%{core_dir}/libexec/seodns_add_domains.so
 %{core_dir}/sbin/seodns_checker
+%{core_dir}/sbin/seodns_add_domains
